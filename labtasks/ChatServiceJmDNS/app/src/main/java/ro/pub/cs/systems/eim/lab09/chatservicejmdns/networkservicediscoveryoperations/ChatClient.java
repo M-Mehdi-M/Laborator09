@@ -95,6 +95,32 @@ public class ChatClient {
                 //   - create a Message instance, with the content received and Constants.MESSAGE_TYPE_SENT as message type
                 //   - add the message to the conversationHistory
                 //   - if the ChatConversationFragment is visible (query the FragmentManager for the Constants.FRAGMENT_TAG tag)
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        String content = messageQueue.take();
+                        if (content != null) {
+                            Log.d(Constants.TAG, "Sending the message: " + content);
+                            printWriter.println(content);
+                            printWriter.flush();
+                            Message message = new Message(content, Constants.MESSAGE_TYPE_SENT);
+                            conversationHistory.add(message);
+                            if (context != null) {
+                                ChatActivity chatActivity = (ChatActivity)context;
+                                FragmentManager fragmentManager = chatActivity.getSupportFragmentManager();
+                                Fragment fragment = fragmentManager.findFragmentByTag(Constants.FRAGMENT_TAG);
+                                if (fragment instanceof ChatConversationFragment && fragment.isVisible()) {
+                                    ChatConversationFragment chatConversationFragment = (ChatConversationFragment)fragment;
+                                    chatConversationFragment.appendMessage(message);
+                                }
+                            }
+                        }
+                    }
+                } catch (InterruptedException interruptedException) {
+                    Log.e(Constants.TAG, "An exception has occurred: " + interruptedException.getMessage());
+                    if (Constants.DEBUG) {
+                        interruptedException.printStackTrace();
+                    }
+                }
             }
 
             Log.i(Constants.TAG, "Send Thread ended");
@@ -121,6 +147,33 @@ public class ChatClient {
                 //   - add the message to the conversationHistory
                 //   - if the ChatConversationFragment is visible (query the FragmentManager for the Constants.FRAGMENT_TAG tag)
                 //   append the message to the graphic user interface
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        String content = bufferedReader.readLine();
+                        if (content != null) {
+                            Log.d(Constants.TAG, "Received the message: " + content);
+                            Message message = new Message(content, Constants.MESSAGE_TYPE_RECEIVED);
+                            conversationHistory.add(message);
+                            if (context != null) {
+                                ChatActivity chatActivity = (ChatActivity)context;
+                                FragmentManager fragmentManager = chatActivity.getSupportFragmentManager();
+                                Fragment fragment = fragmentManager.findFragmentByTag(Constants.FRAGMENT_TAG);
+                                if (fragment instanceof ChatConversationFragment && fragment.isVisible()) {
+                                    ChatConversationFragment chatConversationFragment = (ChatConversationFragment)fragment;
+                                    chatConversationFragment.appendMessage(message);
+                                }
+                            }
+                        } else {
+                            // Daca readLine() intoarce null, conexiunea a fost inchisa
+                            break;
+                        }
+                    }
+                } catch (IOException ioException) {
+                    Log.e(Constants.TAG, "An exception has occurred: " + ioException.getMessage());
+                    if (Constants.DEBUG) {
+                        ioException.printStackTrace();
+                    }
+                }
             }
 
             Log.i(Constants.TAG, "Receive Thread ended");
